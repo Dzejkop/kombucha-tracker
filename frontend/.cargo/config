@@ -1,0 +1,2 @@
+[alias]
+    wb = "watch -w src -s ./rebuild.sh"
