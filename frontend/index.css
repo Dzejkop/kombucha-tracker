@@ -1,0 +1,12 @@
+.kombucha-container {
+    margin-top: 5vh;
+}
+
+.kombucha-panel {
+    height: 80vh;
+}
+
+.full-height {
+    height: 100%;
+    position: relative;
+}

@@ -55,7 +55,7 @@ impl Component for KombuchaView {
     }
 
     fn view(&self) -> Html {
-        if self.is_being_edited {
+        let inner = if self.is_being_edited {
             html! {
                 <div>
                     <p>{ "Editing" }</p>
@@ -89,6 +89,19 @@ impl Component for KombuchaView {
                     <button onclick=self.link.callback(move |_| Msg::Edit)>{ "+" }</button>
                 </div>
             }
+        };
+
+        html! {
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-content">
+                            <p class="title is-4">{ &self.data.name }</p>
+                            <p class="subtitle is-6">{"@johnsmith"}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
     }
 }

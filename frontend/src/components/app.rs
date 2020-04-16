@@ -61,32 +61,102 @@ impl Component for App {
 
     fn view(&self) -> Html {
         html! {
-            <div>
-                <div class="new-kombucha-form">
-                    <p>{ "Add new kombucha" }</p>
-                    <div>
-                        <p>{ "Name" }</p>
-                        <input
-                            oninput=self.link.callback(|e: InputData| Msg::UpdateNewKombuchaName(e.value))
-                            value=self.state.kombucha_form_name
-                        />
-                        <br />
-                        <button onclick=self.link.callback(|_| Msg::AddKombucha)>{ "Add" }</button>
+            <div class="container is-fluid kombucha-container">
+            <div class="columns">
+                <div class="column is-one-third">
+                    <nav class="panel kombucha-panel">
+                        <p class="panel-heading">
+                            {"My Kombuchas"}
+                        </p>
+                        <div class="panel-block">
+                            <div class="control has-icons-left">
+                                <input class="input" type="text" placeholder="Search" />
+                                <span class="icon is-left">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="">
+                            <a class="panel-block is-active">
+                                <span class="panel-icon">
+                                <i class="fas fa-coffee" aria-hidden="true"></i>
+                                </span>
+                                {"Banana 7 day brew"}
+                            </a>
+                            {
+                                for (0..3).map(|_| html! {
+                                    <a class="panel-block">
+                                        <span class="panel-icon">
+                                        <i class="fas fa-coffee" aria-hidden="true"></i>
+                                        </span>
+                                        {"New 3l"}
+                                    </a>
+                                })
+                            }
+
+                        </div>
+                        <div class="panel-block">
+                            <button class="button is-link is-outlined is-fullwidth">
+                                <i class="fa fa-plus fa-lg" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+                <div class="column is-two-thirds">
+                    <div class="card kombucha-panel">
+                        <div class="card-content">
+                            <div class="media">
+                                <div class="media-content">
+                                    <p class="title is-4">{"Banana 7 day brew"}</p>
+                                </div>
+                            </div>
+
+                            <div class="content">
+                                {"Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                Phasellus nec iaculis mauris."}
+                                <a>{"@bulmaio"}</a>{". "}
+                                <a href="#">{"#css"}</a>
+                                <a href="#">{"#responsive"}</a>
+                                <br />
+                                <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
+                                <p>
+                                <hr />
+                                <p class="title is-6">{"Fermentation status"}</p>
+                                <p>{"Primary"}</p>
+                                <progress class="progress is-primary" value="100" max="100">{"15%"}</progress>
+                                <p>{"Secondary"}</p>
+                                <progress class="progress is-info" value="15" max="100">{"15%"}</progress>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    {
-                        for self.state.entries
-                            .iter()
-                            .enumerate()
-                            .map(|(idx, kombucha)| html! {
-                                <KombuchaView
-                                    data = { kombucha.clone() }
-                                    on_change = { self.link.callback(move |value| Msg::UpdateKombucha(idx, value))}
-                                />
-                            })
-                    }
-                </div>
+                // <div class="new-kombucha-form">
+                //     <p>{ "Add new kombucha" }</p>
+                //     <div>
+                //         <p>{ "Name" }</p>
+                //         <input
+                //             oninput=self.link.callback(|e: InputData| Msg::UpdateNewKombuchaName(e.value))
+                //             value=self.state.kombucha_form_name
+                //         />
+                //         <br />
+                //         <button onclick=self.link.callback(|_| Msg::AddKombucha)>{ "Add" }</button>
+                //     </div>
+                // </div>
+                // <div>
+                //     {
+                //         for self.state.entries
+                //             .iter()
+                //             .enumerate()
+                //             .map(|(idx, kombucha)| html! {
+                //                 <KombuchaView
+                //                     data = { kombucha.clone() }
+                //                     on_change = { self.link.callback(move |value| Msg::UpdateKombucha(idx, value))}
+                //                 />
+                //             })
+                //     }
+                // </div>
+            </div>
             </div>
         }
     }
