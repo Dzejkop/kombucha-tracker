@@ -1,6 +1,6 @@
 use derive_more::Display;
 
-#[derive(Display)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Display)]
 pub enum Fermentation {
     Primary,
     Secondary,

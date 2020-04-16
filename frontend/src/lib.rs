@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 
-mod app;
-mod fermentation;
+mod components;
+mod data;
 
 use wasm_bindgen::prelude::*;
 
@@ -10,7 +10,7 @@ pub fn run_app() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
     web_logger::init();
 
-    yew::start_app::<app::App>();
+    yew::start_app::<components::App>();
 
     Ok(())
 }
