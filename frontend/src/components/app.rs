@@ -1,25 +1,60 @@
-use crate::components::KombuchaView;
-use crate::data::{Fermentation, Kombucha};
-use chrono::Utc;
-use yew::prelude::*;
+use crate::components::{KombuchaPanel, KombuchaView};
+use crate::data::Kombucha;
+use anyhow::Error;
+use std::{collections::VecDeque, rc::Rc, sync::Mutex};
+use yew::{
+    format::Nothing,
+    prelude::*,
+    services::{
+        fetch::{Request, Response},
+        FetchService, Task,
+    },
+};
 
 #[derive(Default)]
 pub struct App {
+    fetch_service: FetchService,
     link: ComponentLink<Self>,
-    state: State,
-}
+    jobs: VecDeque<Box<dyn Task>>,
 
-#[derive(Default)]
-pub struct State {
     kombucha_form_name: String,
-    entries: Vec<Kombucha>,
+    selected_idx: Option<usize>,
+    entries: Rc<Mutex<Vec<Kombucha>>>,
 }
 
 pub enum Msg {
     Nop,
     AddKombucha,
-    UpdateNewKombuchaName(String),
+    Select(Option<usize>),
     UpdateKombucha(usize, Kombucha),
+    ShowError(Error),
+}
+
+impl App {
+    pub fn do_something(&mut self) {
+        let req = Request::get("http://localhost:8080/")
+            .body(Nothing)
+            .unwrap();
+        let task = self
+            .fetch_service
+            .fetch(
+                req,
+                self.link.callback(
+                    |response: Response<Result<String, Error>>| match response
+                        .into_body()
+                    {
+                        Ok(content) => {
+                            log::trace!("{}", content);
+                            Msg::Nop
+                        }
+                        Err(error) => Msg::ShowError(error),
+                    },
+                ),
+            )
+            .unwrap();
+
+        self.jobs.push_front(Box::new(task));
+    }
 }
 
 impl Component for App {
@@ -29,31 +64,34 @@ impl Component for App {
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
             link,
+            entries: Rc::new(Mutex::new(vec![
+                Kombucha::default_new(),
+                Kombucha::test_default(),
+                Kombucha::default_new(),
+                Kombucha::test_default(),
+            ])),
             ..Self::default()
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        self.jobs = self.jobs.drain(..).filter(|job| job.is_active()).collect();
+        let mut entries = self.entries.lock().unwrap();
+
         match msg {
             Msg::Nop => return false,
+            Msg::Select(idx) => self.selected_idx = idx,
+            Msg::ShowError(err) => log::error!("Error: {}", err),
             Msg::AddKombucha => {
-                if self.state.kombucha_form_name.is_empty() {
+                if self.kombucha_form_name.is_empty() {
                     return false;
                 }
+                entries.push(Kombucha::default_new());
 
-                self.state.entries.push(Kombucha {
-                    name: self.state.kombucha_form_name.clone(),
-                    added: Utc::now(),
-                    status: Fermentation::Primary,
-                });
-
-                self.state.kombucha_form_name.clear();
-            }
-            Msg::UpdateNewKombuchaName(name) => {
-                self.state.kombucha_form_name = name;
+                self.kombucha_form_name.clear();
             }
             Msg::UpdateKombucha(idx, new_kombucha) => {
-                if let Some(kombucha) = self.state.entries.get_mut(idx) {
+                if let Some(kombucha) = entries.get_mut(idx) {
                     *kombucha = new_kombucha;
                 }
             }
@@ -62,203 +100,35 @@ impl Component for App {
     }
 
     fn view(&self) -> Html {
+        let entries = self.entries.lock().unwrap();
+
+        let inner = if let Some(selected_idx) = self.selected_idx {
+            if let Some(kombucha) = entries.get(selected_idx) {
+                html! {
+                    <KombuchaView
+                        kombucha=kombucha
+                        on_change=self.link.callback(move |kombucha| Msg::UpdateKombucha(selected_idx, kombucha))
+                    />
+                }
+            } else {
+                html! {}
+            }
+        } else {
+            html! {}
+        };
+
         html! {
             <div class="container is-fluid kombucha-container">
             <div class="columns">
                 <div class="column is-one-third">
-                    <nav class="panel kombucha-panel">
-                        <p class="panel-heading">
-                            {"My Kombuchas"}
-                        </p>
-                        <div class="panel-block">
-                            <div class="control has-icons-left">
-                                <input class="input" type="text" placeholder="Search" />
-                                <span class="icon is-left">
-                                    <i class="fas fa-search" aria-hidden="true"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="">
-                            <a class="panel-block is-active">
-                                <span class="panel-icon">
-                                <i class="fas fa-coffee" aria-hidden="true"></i>
-                                </span>
-                                {"Banana 7 day brew"}
-                            </a>
-                            {
-                                for (3..10).map(|idx| html! {
-                                    <a class="panel-block">
-                                        <span class="panel-icon">
-                                        <i class="fas fa-coffee" aria-hidden="true"></i>
-                                        </span>
-                                        { format!("New {}l", idx)}
-                                    </a>
-                                })
-                            }
-
-                        </div>
-                        <div class="panel-block">
-                            <button class="button is-link is-outlined is-fullwidth">
-                                <i class="fa fa-plus fa-lg" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </nav>
+                    <KombuchaPanel
+                        kombuchas=self.entries.clone()
+                        on_select=self.link.callback(|idx| { log::info!("Selecing {:?}", idx); Msg::Select(idx) })
+                    />
                 </div>
                 <div class="column is-two-thirds">
-                    <div class="card kombucha-panel">
-                        <div class="card-content">
-                            <div class="media">
-                                <div class="media-content">
-                                    <p class="title is-4">{"Banana 7 day brew"}</p>
-                                </div>
-                            </div>
-                            <div class="content">
-                                <div class="kombucha-entry">
-                                    <p>
-                                        {"Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                                        Phasellus nec iaculis mauris."}
-                                        <br />
-                                        <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
-                                    </p>
-                                    <p class="kombucha-content-control">
-                                        <div class="field is-grouped is-grouped-centered">
-                                            <p class="control">
-                                                <button
-                                                    class="button"
-                                                    onclick=self.link.callback(|_| { log::info!("Edit me!"); Msg::Nop })
-                                                >
-                                                    <span class="icon is-medium">
-                                                    <i class="fas fa-edit"></i>
-                                                    </span>
-                                                </button>
-                                            </p>
-                                            <p class="control">
-                                                <button
-                                                    class="button is-danger"
-                                                    onclick=self.link.callback(|_| { log::info!("Delete me!"); Msg::Nop })
-                                                >
-                                                    <span class="icon is-medium">
-                                                    <i class="fas fa-trash"></i>
-                                                    </span>
-                                                </button>
-                                            </p>
-                                        </div>
-                                    </p>
-                                </div>
-                                <hr />
-                                <div class="kombucha-entry">
-                                    <p>
-                                        {"Whaaaaaaaaaaaaaaaaaat?"}
-                                        <br />
-                                        <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
-                                    </p>
-                                    <p class="kombucha-content-control">
-                                        <div class="field is-grouped is-grouped-centered">
-                                            <p class="control">
-                                                <button
-                                                    class="button"
-                                                    onclick=self.link.callback(|_| { log::info!("Edit me!"); Msg::Nop })
-                                                >
-                                                    <span class="icon is-medium">
-                                                    <i class="fas fa-edit"></i>
-                                                    </span>
-                                                </button>
-                                            </p>
-                                            <p class="control">
-                                                <button
-                                                    class="button is-danger"
-                                                    onclick=self.link.callback(|_| { log::info!("Delete me!"); Msg::Nop })
-                                                >
-                                                    <span class="icon is-medium">
-                                                    <i class="fas fa-trash"></i>
-                                                    </span>
-                                                </button>
-                                            </p>
-                                        </div>
-                                    </p>
-                                </div>
-                                <hr />
-                                <div class="kombucha-entry">
-                                    <p>
-                                        {"Something weird happened"}
-                                        <br />
-                                        <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
-                                    </p>
-                                    <p class="kombucha-content-control">
-                                        <div class="field is-grouped is-grouped-centered">
-                                            <p class="control">
-                                                <button
-                                                    class="button"
-                                                    onclick=self.link.callback(|_| { log::info!("Edit me!"); Msg::Nop })
-                                                >
-                                                    <span class="icon is-medium">
-                                                    <i class="fas fa-edit"></i>
-                                                    </span>
-                                                </button>
-                                            </p>
-                                            <p class="control">
-                                                <button
-                                                    class="button is-danger"
-                                                    onclick=self.link.callback(|_| { log::info!("Delete me!"); Msg::Nop })
-                                                >
-                                                    <span class="icon is-medium">
-                                                    <i class="fas fa-trash"></i>
-                                                    </span>
-                                                </button>
-                                            </p>
-                                        </div>
-                                    </p>
-                                </div>
-                                <hr />
-                                <div class="field is-grouped is-grouped-centered">
-                                    <p class="control">
-                                        <button class="button is-info">
-                                            <span class="icon is-large">
-                                                <i class="fas fa-plus fa-2x"></i>
-                                            </span>
-                                        </button>
-                                    </p>
-                                </div>
-                                <hr />
-                                <p>
-                                    <p class="title is-6">{"Fermentation status"}</p>
-                                    <p>{"Primary"}</p>
-                                        <progress class="progress is-primary" value="100" max="100">{"15%"}</progress>
-                                    <p>{"1 Jan 2016 - 7 Jan 2016"}</p>
-                                    <hr />
-                                    <p>{"Secondary"}</p>
-                                        <progress class="progress is-info" value="15" max="100">{"15%"}</progress>
-                                    <p>{"1 Jan 2016 - ..."}</p>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                    { inner }
                 </div>
-                // <div class="new-kombucha-form">
-                //     <p>{ "Add new kombucha" }</p>
-                //     <div>
-                //         <p>{ "Name" }</p>
-                //         <input
-                //             oninput=self.link.callback(|e: InputData| Msg::UpdateNewKombuchaName(e.value))
-                //             value=self.state.kombucha_form_name
-                //         />
-                //         <br />
-                //         <button onclick=self.link.callback(|_| Msg::AddKombucha)>{ "Add" }</button>
-                //     </div>
-                // </div>
-                // <div>
-                //     {
-                //         for self.state.entries
-                //             .iter()
-                //             .enumerate()
-                //             .map(|(idx, kombucha)| html! {
-                //                 <KombuchaView
-                //                     data = { kombucha.clone() }
-                //                     on_change = { self.link.callback(move |value| Msg::UpdateKombucha(idx, value))}
-                //                 />
-                //             })
-                //     }
-                // </div>
             </div>
             </div>
         }

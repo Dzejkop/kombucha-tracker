@@ -1,7 +1,7 @@
-#![recursion_limit = "2048"]
+#![recursion_limit = "256"]
 
-mod components;
-mod data;
+pub mod components;
+pub mod data;
 
 use wasm_bindgen::prelude::*;
 
