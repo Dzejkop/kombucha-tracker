@@ -16,6 +16,7 @@ pub struct State {
 }
 
 pub enum Msg {
+    Nop,
     AddKombucha,
     UpdateNewKombuchaName(String),
     UpdateKombucha(usize, Kombucha),
@@ -34,6 +35,7 @@ impl Component for App {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Nop => return false,
             Msg::AddKombucha => {
                 if self.state.kombucha_form_name.is_empty() {
                     return false;
@@ -84,12 +86,12 @@ impl Component for App {
                                 {"Banana 7 day brew"}
                             </a>
                             {
-                                for (0..3).map(|_| html! {
+                                for (3..10).map(|idx| html! {
                                     <a class="panel-block">
                                         <span class="panel-icon">
                                         <i class="fas fa-coffee" aria-hidden="true"></i>
                                         </span>
-                                        {"New 3l"}
+                                        { format!("New {}l", idx)}
                                     </a>
                                 })
                             }
@@ -110,22 +112,123 @@ impl Component for App {
                                     <p class="title is-4">{"Banana 7 day brew"}</p>
                                 </div>
                             </div>
-
                             <div class="content">
-                                {"Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                                Phasellus nec iaculis mauris."}
-                                <a>{"@bulmaio"}</a>{". "}
-                                <a href="#">{"#css"}</a>
-                                <a href="#">{"#responsive"}</a>
-                                <br />
-                                <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
-                                <p>
+                                <div class="kombucha-entry">
+                                    <p>
+                                        {"Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                        Phasellus nec iaculis mauris."}
+                                        <br />
+                                        <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
+                                    </p>
+                                    <p class="kombucha-content-control">
+                                        <div class="field is-grouped is-grouped-centered">
+                                            <p class="control">
+                                                <button
+                                                    class="button"
+                                                    onclick=self.link.callback(|_| { log::info!("Edit me!"); Msg::Nop })
+                                                >
+                                                    <span class="icon is-medium">
+                                                    <i class="fas fa-edit"></i>
+                                                    </span>
+                                                </button>
+                                            </p>
+                                            <p class="control">
+                                                <button
+                                                    class="button is-danger"
+                                                    onclick=self.link.callback(|_| { log::info!("Delete me!"); Msg::Nop })
+                                                >
+                                                    <span class="icon is-medium">
+                                                    <i class="fas fa-trash"></i>
+                                                    </span>
+                                                </button>
+                                            </p>
+                                        </div>
+                                    </p>
+                                </div>
                                 <hr />
-                                <p class="title is-6">{"Fermentation status"}</p>
-                                <p>{"Primary"}</p>
-                                <progress class="progress is-primary" value="100" max="100">{"15%"}</progress>
-                                <p>{"Secondary"}</p>
-                                <progress class="progress is-info" value="15" max="100">{"15%"}</progress>
+                                <div class="kombucha-entry">
+                                    <p>
+                                        {"Whaaaaaaaaaaaaaaaaaat?"}
+                                        <br />
+                                        <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
+                                    </p>
+                                    <p class="kombucha-content-control">
+                                        <div class="field is-grouped is-grouped-centered">
+                                            <p class="control">
+                                                <button
+                                                    class="button"
+                                                    onclick=self.link.callback(|_| { log::info!("Edit me!"); Msg::Nop })
+                                                >
+                                                    <span class="icon is-medium">
+                                                    <i class="fas fa-edit"></i>
+                                                    </span>
+                                                </button>
+                                            </p>
+                                            <p class="control">
+                                                <button
+                                                    class="button is-danger"
+                                                    onclick=self.link.callback(|_| { log::info!("Delete me!"); Msg::Nop })
+                                                >
+                                                    <span class="icon is-medium">
+                                                    <i class="fas fa-trash"></i>
+                                                    </span>
+                                                </button>
+                                            </p>
+                                        </div>
+                                    </p>
+                                </div>
+                                <hr />
+                                <div class="kombucha-entry">
+                                    <p>
+                                        {"Something weird happened"}
+                                        <br />
+                                        <time datetime="2016-1-1">{"11:09 PM - 1 Jan 2016"}</time>
+                                    </p>
+                                    <p class="kombucha-content-control">
+                                        <div class="field is-grouped is-grouped-centered">
+                                            <p class="control">
+                                                <button
+                                                    class="button"
+                                                    onclick=self.link.callback(|_| { log::info!("Edit me!"); Msg::Nop })
+                                                >
+                                                    <span class="icon is-medium">
+                                                    <i class="fas fa-edit"></i>
+                                                    </span>
+                                                </button>
+                                            </p>
+                                            <p class="control">
+                                                <button
+                                                    class="button is-danger"
+                                                    onclick=self.link.callback(|_| { log::info!("Delete me!"); Msg::Nop })
+                                                >
+                                                    <span class="icon is-medium">
+                                                    <i class="fas fa-trash"></i>
+                                                    </span>
+                                                </button>
+                                            </p>
+                                        </div>
+                                    </p>
+                                </div>
+                                <hr />
+                                <div class="field is-grouped is-grouped-centered">
+                                    <p class="control">
+                                        <button class="button is-info">
+                                            <span class="icon is-large">
+                                                <i class="fas fa-plus fa-2x"></i>
+                                            </span>
+                                        </button>
+                                    </p>
+                                </div>
+                                <hr />
+                                <p>
+                                    <p class="title is-6">{"Fermentation status"}</p>
+                                    <p>{"Primary"}</p>
+                                        <progress class="progress is-primary" value="100" max="100">{"15%"}</progress>
+                                    <p>{"1 Jan 2016 - 7 Jan 2016"}</p>
+                                    <hr />
+                                    <p>{"Secondary"}</p>
+                                        <progress class="progress is-info" value="15" max="100">{"15%"}</progress>
+                                    <p>{"1 Jan 2016 - ..."}</p>
                                 </p>
                             </div>
                         </div>
