@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # Requires browser-sync
 # > sudo npm install -g browser-sync
