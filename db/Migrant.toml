@@ -1,0 +1,21 @@
+
+# Required, do not edit
+database_type = "postgres"
+
+# Required database info
+database_name = "kombucha"
+database_user = "postgres"
+database_password = "pass123"
+
+# Configurable database info
+database_host = "172.17.0.2"         # default "localhost"
+database_port = "5432"              # default "5432"
+migration_location = "migrations"  # default "migrations"
+
+# Extra database connection parameters
+# with the format:
+# [database_params]
+# key = "value"
+[database_params]
+
+
