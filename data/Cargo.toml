@@ -4,8 +4,12 @@ version = "0.1.0"
 authors = ["Jakub Trąd <jakubtrad@gmail.com>"]
 edition = "2018"
 
+[features]
+db = ["sqlx"]
+
 [dependencies]
 derive_more = "0.99.5"
 chrono = { version = "0.4.11", features = ["serde"] }
 serde = { version = "1.0.106", features = ["derive"] }
 anyhow = "1.0.28"
+sqlx = { version = "0.3", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "chrono" ], optional = true }

@@ -68,7 +68,7 @@ impl Component for KombuchaView {
             }
             Msg::UpdateSectionText(idx, new_text) => {
                 if let Some(section) = self.kombucha.entries.get_mut(idx) {
-                    section.text = new_text;
+                    section.content = new_text;
                 }
             }
             Msg::NewSection => {
@@ -209,10 +209,10 @@ impl KombuchaView {
                 <p>
                     <textarea
                         class="textarea"
-                        value=entry.text
+                        value=entry.content
                         oninput=self.link.callback(move |e: InputData| Msg::UpdateSectionText(idx, e.value))
                     >
-                        { &entry.text }
+                        { &entry.content }
                     </textarea>
                     <br />
                     <time datetime={entry.added}>{ entry.added.to_string() }</time>
@@ -249,7 +249,7 @@ impl KombuchaView {
         html! {
             <div class="kombucha-entry">
                 <p>
-                    { &entry.text }
+                    { &entry.content }
                     <br />
                     <time datetime={entry.added}>{ entry.added.to_string() }</time>
                 </p>

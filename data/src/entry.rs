@@ -4,12 +4,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Entry {
     pub added: DateTime<Utc>,
-    pub text: String,
+    pub content: String,
 }
 
 impl Entry {
     pub fn new(added: DateTime<Utc>, text: String) -> Self {
-        Self { added, text }
+        Self {
+            added,
+            content: text,
+        }
     }
 }
 

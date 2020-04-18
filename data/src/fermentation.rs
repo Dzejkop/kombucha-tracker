@@ -1,7 +1,7 @@
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Display, Deserialize, Serialize)]
 pub enum Fermentation {
     Primary,
     Secondary,

@@ -2,7 +2,7 @@ use super::{fermentation::Fermentation, Entry};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
 pub struct Kombucha {
     pub name: String,
     pub added: DateTime<Utc>,
@@ -18,7 +18,7 @@ impl Kombucha {
             status: Fermentation::Primary,
             entries: vec![Entry {
                 added: Utc::now(),
-                text: "Started making this kombucha".to_string(),
+                content: "Started making this kombucha".to_string(),
             }],
         }
     }

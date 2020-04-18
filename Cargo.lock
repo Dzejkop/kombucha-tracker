@@ -648,6 +648,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "serde",
+ "sqlx",
 ]
 
 [[package]]
@@ -1231,6 +1232,7 @@ version = "0.1.0"
 dependencies = [
  "actix-rt",
  "actix-web",
+ "anyhow",
  "data-types",
  "dotenv",
  "env_logger",
@@ -2102,6 +2104,7 @@ dependencies = [
  "base64 0.12.0",
  "bitflags",
  "byteorder",
+ "chrono",
  "crossbeam-queue",
  "crossbeam-utils",
  "futures-channel",

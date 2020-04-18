@@ -3,7 +3,7 @@ use crate::data::Kombucha;
 use anyhow::Error;
 use std::{collections::VecDeque, rc::Rc, sync::Mutex};
 use yew::{
-    format::Nothing,
+    format::{Json, Nothing},
     prelude::*,
     services::{
         fetch::{Request, Response},
@@ -25,29 +25,28 @@ pub struct App {
 pub enum Msg {
     Nop,
     AddKombucha,
+    LoadKombuchas(Vec<Kombucha>),
     Select(Option<usize>),
     UpdateKombucha(usize, Kombucha),
     ShowError(Error),
 }
 
 impl App {
-    pub fn do_something(&mut self) {
-        let req = Request::get("http://localhost:8080/")
+    pub fn get_kombuchas(&mut self) {
+        let req = Request::get("http://localhost:8080/kombucha/all")
             .body(Nothing)
             .unwrap();
+
         let task = self
             .fetch_service
             .fetch(
                 req,
                 self.link.callback(
-                    |response: Response<Result<String, Error>>| match response
-                        .into_body()
-                    {
-                        Ok(content) => {
-                            log::trace!("{}", content);
-                            Msg::Nop
+                    |response: Response<Json<Result<Vec<Kombucha>, Error>>>| {
+                        match response.into_body().0 {
+                            Ok(content) => Msg::LoadKombuchas(content),
+                            Err(error) => Msg::ShowError(error),
                         }
-                        Err(error) => Msg::ShowError(error),
                     },
                 ),
             )
@@ -62,7 +61,7 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        Self {
+        let mut app = Self {
             link,
             entries: Rc::new(Mutex::new(vec![
                 Kombucha::default_new(),
@@ -71,7 +70,11 @@ impl Component for App {
                 Kombucha::test_default(),
             ])),
             ..Self::default()
-        }
+        };
+
+        app.get_kombuchas();
+
+        app
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -80,6 +83,9 @@ impl Component for App {
 
         match msg {
             Msg::Nop => return false,
+            Msg::LoadKombuchas(kombuchas) => {
+                *entries = kombuchas;
+            }
             Msg::Select(idx) => self.selected_idx = idx,
             Msg::ShowError(err) => log::error!("Error: {}", err),
             Msg::AddKombucha => {
