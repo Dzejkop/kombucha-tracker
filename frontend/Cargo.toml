@@ -17,3 +17,4 @@ chrono = { version = "0.4.11", features = ["wasmbind"] }
 derive_more = "0.99.5"
 web_logger = "0.2.0"
 console_error_panic_hook = "0.1.6"
+data-types = { path = "../data" }
