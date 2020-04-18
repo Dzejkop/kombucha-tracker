@@ -17,7 +17,6 @@ pub struct App {
     link: ComponentLink<Self>,
     jobs: VecDeque<Box<dyn Task>>,
 
-    kombucha_form_name: String,
     selected_idx: Option<usize>,
     entries: Rc<Mutex<Vec<Kombucha>>>,
 }
@@ -63,12 +62,7 @@ impl Component for App {
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         let mut app = Self {
             link,
-            entries: Rc::new(Mutex::new(vec![
-                Kombucha::default_new(),
-                Kombucha::test_default(),
-                Kombucha::default_new(),
-                Kombucha::test_default(),
-            ])),
+            entries: Rc::new(Mutex::new(Vec::new())),
             ..Self::default()
         };
 
@@ -89,12 +83,12 @@ impl Component for App {
             Msg::Select(idx) => self.selected_idx = idx,
             Msg::ShowError(err) => log::error!("Error: {}", err),
             Msg::AddKombucha => {
-                if self.kombucha_form_name.is_empty() {
-                    return false;
-                }
-                entries.push(Kombucha::default_new());
-
-                self.kombucha_form_name.clear();
+                entries.push(Kombucha {
+                    id: 0.into(),
+                    name: "New Kombucha".to_string(),
+                    added: chrono::Utc::now(),
+                    entries: vec![],
+                });
             }
             Msg::UpdateKombucha(idx, new_kombucha) => {
                 if let Some(kombucha) = entries.get_mut(idx) {
@@ -130,6 +124,7 @@ impl Component for App {
                     <KombuchaPanel
                         kombuchas=self.entries.clone()
                         on_select=self.link.callback(|idx| { log::info!("Selecing {:?}", idx); Msg::Select(idx) })
+                        on_add=self.link.callback(|_| Msg::AddKombucha)
                     />
                 </div>
                 <div class="column is-two-thirds">

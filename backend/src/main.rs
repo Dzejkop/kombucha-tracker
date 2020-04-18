@@ -1,5 +1,5 @@
 use data_types::db::{Entry as DbEntry, Kombucha as DbKombucha};
-use data_types::{Entry, Kombucha};
+use data_types::{Entry, Kombucha, KombuchaId};
 use sqlx::postgres::PgPool;
 use sqlx::prelude::*;
 use std::{env, sync::Arc};
@@ -42,7 +42,7 @@ impl App {
 
     async fn get_entries_for_kombucha(
         &self,
-        kombucha_id: i32,
+        kombucha_id: KombuchaId,
     ) -> Result<Vec<DbEntry>, anyhow::Error> {
         let row = sqlx::query_as::<_, DbEntry>(
             "SELECT id, kombucha_id, content, added FROM kombucha_entry WHERE kombucha_id = $1",
@@ -103,14 +103,18 @@ async fn get_kombuchas(
 
         let entries = entries
             .into_iter()
-            .map(|DbEntry { content, added, .. }| Entry { content, added })
+            .map(
+                |DbEntry {
+                     id, content, added, ..
+                 }| Entry { id, content, added },
+            )
             .collect();
 
         ret_kombuchas.push(Kombucha {
+            id,
             name,
             added,
             entries,
-            ..Kombucha::default_new()
         });
     }
 
@@ -130,20 +134,24 @@ async fn get_kombucha(
         .ok_or_else(warp::reject::not_found)?;
 
     let entries = app
-        .get_entries_for_kombucha(id)
+        .get_entries_for_kombucha(id.into())
         .await
         .map_err(|_| warp::reject::not_found())?;
 
     let entries = entries
         .into_iter()
-        .map(|DbEntry { content, added, .. }| Entry { content, added })
+        .map(
+            |DbEntry {
+                 id, content, added, ..
+             }| Entry { id, content, added },
+        )
         .collect();
 
     let kombucha = Kombucha {
+        id,
         name,
         added,
         entries,
-        ..Kombucha::default_new()
     };
 
     Ok(warp::reply::json(&kombucha))

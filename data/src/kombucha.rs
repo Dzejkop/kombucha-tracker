@@ -1,34 +1,23 @@
-use super::{fermentation::Fermentation, Entry};
+use super::Entry;
+use crate::KombuchaId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
 pub struct Kombucha {
+    pub id: KombuchaId,
     pub name: String,
     pub added: DateTime<Utc>,
-    pub status: Fermentation,
     pub entries: Vec<Entry>,
 }
 
 impl Kombucha {
-    pub fn test_default() -> Self {
-        Kombucha {
-            name: "kombucha".to_string(),
-            added: Utc::now(),
-            status: Fermentation::Primary,
-            entries: vec![Entry {
-                added: Utc::now(),
-                content: "Started making this kombucha".to_string(),
-            }],
-        }
-    }
-
-    pub fn default_new() -> Self {
-        Kombucha {
-            name: "New kombucha".to_string(),
-            added: Utc::now(),
-            status: Fermentation::Primary,
-            entries: vec![],
+    pub fn new_without_id(name: impl ToString, added: DateTime<Utc>, entries: Vec<Entry>) -> Self {
+        Self {
+            id: 0.into(),
+            name: name.to_string(),
+            added,
+            entries,
         }
     }
 }
