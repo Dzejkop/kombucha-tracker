@@ -6,13 +6,11 @@ edition = "2018"
 
 [dependencies]
 tokio = { version = "0.2", features = ["macros"] }
-actix-web = "2.0"
-actix-rt = "1.0"
 log = "0.4.8"
 env_logger = "0.7.1"
 dotenv = "0.15.0"
 serde = { version = "1.0.106", features = ["derive"] }
 data-types = { path = "../data", features = ["db"] }
 sqlx = { version = "0.3", default-features = false, features = [ "runtime-tokio", "macros", "postgres", "chrono" ] }
-warp = "0.2.2"
+warp = { version = "0.2.2", default-features = false, features = ["multipart"] }
 anyhow = "1.0.28"

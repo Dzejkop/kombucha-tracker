@@ -4,9 +4,33 @@
 
 .kombucha-panel {
     height: 80vh;
+    overflow: scroll;
 }
 
 .full-height {
     height: 100%;
     position: relative;
+}
+
+.kombucha-error {
+    position: fixed;
+    width: 60vw;
+    top: 20vw;
+    left: 20vw;
+    margin: auto;
+}
+
+.kombucha-error-bg {
+    position: fixed;
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    left: 0px;
+    top: 0px;
+    background-color: #000a;
+}
+
+.kombucha-error-msg {
+    overflow: scroll;
 }

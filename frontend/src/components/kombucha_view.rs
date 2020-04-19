@@ -1,4 +1,4 @@
-use crate::data::{Entry, Kombucha};
+use data_types::{Entry, EntryId, Kombucha, KombuchaId};
 use yew::prelude::*;
 
 pub enum Msg {
@@ -17,14 +17,15 @@ pub enum Msg {
 pub struct Props {
     pub kombucha: Kombucha,
     pub on_change: Callback<Kombucha>,
+    pub on_new_entry: Callback<KombuchaId>,
+    pub on_delete_entry: Callback<(KombuchaId, EntryId)>,
 }
 
 pub struct KombuchaView {
     link: ComponentLink<Self>,
     is_editing_name: bool,
     edited_entry: Option<usize>,
-    kombucha: Kombucha,
-    on_change: Callback<Kombucha>,
+    props: Props,
 }
 
 impl Component for KombuchaView {
@@ -32,15 +33,9 @@ impl Component for KombuchaView {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let Props {
-            on_change,
-            kombucha,
-        } = props;
-
         Self {
             link,
-            kombucha,
-            on_change,
+            props,
             is_editing_name: false,
             edited_entry: None,
         }
@@ -50,11 +45,11 @@ impl Component for KombuchaView {
         match msg {
             Msg::Nop => return true,
             Msg::UpdateName(new_name) => {
-                self.kombucha.name = new_name;
+                self.props.kombucha.name = new_name;
             }
             Msg::StartEditingSection(idx) => match self.edited_entry {
                 None => {
-                    if idx < self.kombucha.entries.len() {
+                    if idx < self.props.kombucha.entries.len() {
                         self.edited_entry = Some(idx);
                     }
                 }
@@ -64,21 +59,24 @@ impl Component for KombuchaView {
             },
             Msg::StopEditingSection => {
                 self.edited_entry = None;
-                self.on_change.emit(self.kombucha.clone());
+                self.props.on_change.emit(self.props.kombucha.clone());
             }
             Msg::UpdateSectionText(idx, new_text) => {
-                if let Some(section) = self.kombucha.entries.get_mut(idx) {
+                if let Some(section) = self.props.kombucha.entries.get_mut(idx)
+                {
                     section.content = new_text;
                 }
             }
             Msg::NewSection => {
-                self.kombucha.entries.push(Entry::default());
-                self.edited_entry = Some(self.kombucha.entries.len() - 1);
+                self.props.on_new_entry.emit(self.props.kombucha.id);
+                self.props.kombucha.entries.push(Entry::default());
+                self.edited_entry = Some(self.props.kombucha.entries.len() - 1);
             }
             Msg::DeleteSection(idx) => {
-                if idx < self.kombucha.entries.len() {
-                    self.kombucha.entries.remove(idx);
-                    self.on_change.emit(self.kombucha.clone());
+                if let Some(entry) = self.props.kombucha.entries.get(idx) {
+                    self.props
+                        .on_delete_entry
+                        .emit((self.props.kombucha.id, entry.id));
                 }
             }
             Msg::StartEditingName => {
@@ -86,7 +84,7 @@ impl Component for KombuchaView {
             }
             Msg::StopEditingName => {
                 self.is_editing_name = false;
-                self.on_change.emit(self.kombucha.clone());
+                self.props.on_change.emit(self.props.kombucha.clone());
             }
         }
 
@@ -94,13 +92,7 @@ impl Component for KombuchaView {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        let Props {
-            on_change,
-            kombucha,
-        } = props;
-
-        self.on_change = on_change;
-        self.kombucha = kombucha;
+        self.props = props;
 
         true
     }
@@ -155,7 +147,7 @@ impl KombuchaView {
             html! {
                 <div>
                     <input
-                        class="title is-4" value=self.kombucha.name
+                        class="title is-4" value=self.props.kombucha.name
                         onchange=self.link.callback(|e: ChangeData| match e {
                             ChangeData::Value(value) => Msg::UpdateName(value),
                             x => { log::error!("Invalid change data, expected value, found {:?}", x); Msg::Nop }
@@ -171,7 +163,7 @@ impl KombuchaView {
         } else {
             html! {
                 <div>
-                    <span class="title is-4">{ &self.kombucha.name }</span>
+                    <span class="title is-4">{ &self.props.kombucha.name }</span>
                     {"\u{00a0}"}
                     <a
                         class="icon is-small"
@@ -184,6 +176,7 @@ impl KombuchaView {
 
     fn view_entries(&self) -> Html {
         let entries = self
+            .props
             .kombucha
             .entries
             .iter()

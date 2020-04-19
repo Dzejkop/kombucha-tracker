@@ -8,5 +8,5 @@ pub mod db;
 
 pub use self::entry::Entry;
 pub use self::fermentation::Fermentation;
-pub use self::id::KombuchaId;
+pub use self::id::{EntryId, KombuchaId};
 pub use self::kombucha::Kombucha;

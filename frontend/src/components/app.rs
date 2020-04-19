@@ -1,6 +1,6 @@
-use crate::components::{KombuchaPanel, KombuchaView};
-use crate::data::Kombucha;
+use crate::components::{ErrorView, KombuchaPanel, KombuchaView};
 use anyhow::Error;
+use data_types::{EntryId, Kombucha, KombuchaId};
 use std::{collections::VecDeque, rc::Rc, sync::Mutex};
 use yew::{
     format::{Json, Nothing},
@@ -17,22 +17,83 @@ pub struct App {
     link: ComponentLink<Self>,
     jobs: VecDeque<Box<dyn Task>>,
 
+    error: Option<String>,
     selected_idx: Option<usize>,
     entries: Rc<Mutex<Vec<Kombucha>>>,
 }
 
 pub enum Msg {
+    Unimplemented,
     Nop,
     AddKombucha,
+    Reload,
     LoadKombuchas(Vec<Kombucha>),
+    DeleteEntry(KombuchaId, EntryId),
+    NewEntry(KombuchaId),
     Select(Option<usize>),
     UpdateKombucha(usize, Kombucha),
     ShowError(Error),
+    CloseError,
 }
 
 impl App {
-    pub fn get_kombuchas(&mut self) {
-        let req = Request::get("http://localhost:8080/kombucha/all")
+    fn add_kombucha(&mut self) {
+        let req = Request::post("http://localhost:8080/api/1/kombucha")
+            .body(Nothing)
+            .unwrap();
+
+        let task = self
+            .fetch_service
+            .fetch(
+                req,
+                self.link.callback(
+                    |_: Response<Json<Result<KombuchaId, Error>>>| Msg::Reload,
+                ),
+            )
+            .unwrap();
+
+        self.jobs.push_front(Box::new(task));
+    }
+
+    fn delete_entry(&mut self, id: KombuchaId, entry_id: EntryId) {
+        let url = format!(
+            "http://localhost:8080/api/1/kombucha/{}/entry/{}",
+            id, entry_id
+        );
+        let req = Request::delete(url).body(Nothing).unwrap();
+
+        let task = self
+            .fetch_service
+            .fetch(
+                req,
+                self.link.callback(
+                    |_: Response<Json<Result<KombuchaId, Error>>>| Msg::Reload,
+                ),
+            )
+            .unwrap();
+
+        self.jobs.push_front(Box::new(task));
+    }
+
+    fn new_entry(&mut self, id: KombuchaId) {
+        let url = format!("http://localhost:8080/api/1/kombucha/{}/entry", id);
+        let req = Request::post(url).body(Nothing).unwrap();
+
+        let task = self
+            .fetch_service
+            .fetch(
+                req,
+                self.link.callback(
+                    |_: Response<Json<Result<KombuchaId, Error>>>| Msg::Reload,
+                ),
+            )
+            .unwrap();
+
+        self.jobs.push_front(Box::new(task));
+    }
+
+    fn get_kombuchas(&mut self) {
+        let req = Request::get("http://localhost:8080/api/1/kombucha/all")
             .body(Nothing)
             .unwrap();
 
@@ -46,6 +107,32 @@ impl App {
                             Ok(content) => Msg::LoadKombuchas(content),
                             Err(error) => Msg::ShowError(error),
                         }
+                    },
+                ),
+            )
+            .unwrap();
+
+        self.jobs.push_front(Box::new(task));
+    }
+
+    fn update_kombucha(&mut self, kombucha: &Kombucha) {
+        let req = Request::put("http://localhost:8080/api/1/kombucha")
+            .header("content-type", "application/json")
+            .body(Json(&kombucha))
+            .unwrap();
+
+        let task = self
+            .fetch_service
+            .fetch(
+                req,
+                self.link.callback(
+                    |response: Response<Result<String, Error>>| {
+                        match response.into_body() {
+                            Ok(data) => log::info!("Got response {}", data),
+                            Err(err) => log::error!("Got error {}", err),
+                        };
+
+                        Msg::Nop
                     },
                 ),
             )
@@ -76,24 +163,43 @@ impl Component for App {
         let mut entries = self.entries.lock().unwrap();
 
         match msg {
+            Msg::Reload => {
+                drop(entries);
+                self.get_kombuchas();
+            }
             Msg::Nop => return false,
             Msg::LoadKombuchas(kombuchas) => {
                 *entries = kombuchas;
             }
             Msg::Select(idx) => self.selected_idx = idx,
-            Msg::ShowError(err) => log::error!("Error: {}", err),
+            Msg::ShowError(err) => {
+                log::error!("Error: {}", err);
+                self.error = Some(err.to_string());
+            }
+            Msg::CloseError => self.error = None,
             Msg::AddKombucha => {
-                entries.push(Kombucha {
-                    id: 0.into(),
-                    name: "New Kombucha".to_string(),
-                    added: chrono::Utc::now(),
-                    entries: vec![],
-                });
+                drop(entries);
+                self.add_kombucha();
             }
             Msg::UpdateKombucha(idx, new_kombucha) => {
                 if let Some(kombucha) = entries.get_mut(idx) {
-                    *kombucha = new_kombucha;
+                    *kombucha = new_kombucha.clone();
                 }
+
+                drop(entries);
+
+                self.update_kombucha(&new_kombucha);
+            }
+            Msg::Unimplemented => {
+                self.error = Some("Unimplemented :(".to_string());
+            }
+            Msg::DeleteEntry(kombucha_id, entry_id) => {
+                drop(entries);
+                self.delete_entry(kombucha_id, entry_id);
+            }
+            Msg::NewEntry(kombucha_id) => {
+                drop(entries);
+                self.new_entry(kombucha_id);
             }
         }
         true
@@ -108,11 +214,19 @@ impl Component for App {
                     <KombuchaView
                         kombucha=kombucha
                         on_change=self.link.callback(move |kombucha| Msg::UpdateKombucha(selected_idx, kombucha))
+                        on_delete_entry=self.link.callback(|(kombucha_id, entry_id)| Msg::DeleteEntry(kombucha_id, entry_id))
+                        on_new_entry=self.link.callback(|kombucha_id| Msg::NewEntry(kombucha_id))
                     />
                 }
             } else {
                 html! {}
             }
+        } else {
+            html! {}
+        };
+
+        let error = if let Some(err) = self.error.clone() {
+            html! { <ErrorView msg=err on_close=self.link.callback(|_| Msg::CloseError)/> }
         } else {
             html! {}
         };
@@ -123,7 +237,7 @@ impl Component for App {
                 <div class="column is-one-third">
                     <KombuchaPanel
                         kombuchas=self.entries.clone()
-                        on_select=self.link.callback(|idx| { log::info!("Selecing {:?}", idx); Msg::Select(idx) })
+                        on_select=self.link.callback(|idx| Msg::Select(idx))
                         on_add=self.link.callback(|_| Msg::AddKombucha)
                     />
                 </div>
@@ -131,6 +245,7 @@ impl Component for App {
                     { inner }
                 </div>
             </div>
+            { error }
             </div>
         }
     }
