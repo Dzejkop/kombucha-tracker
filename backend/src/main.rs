@@ -5,6 +5,8 @@ use sqlx::prelude::*;
 use std::{env, sync::Arc};
 use warp::{Filter, Rejection};
 
+const PORT: u16 = 8080;
+
 type AppType = Arc<App>;
 
 #[derive(Clone, Debug)]
@@ -273,10 +275,33 @@ async fn delete_kombucha_entry(
     Ok(warp::reply::reply())
 }
 
+async fn delete_kombucha(
+    id: KombuchaId,
+    app: AppType,
+) -> Result<impl warp::Reply, Rejection> {
+    log::info!("Deleting kombucha {}", id);
+
+    let mut transaction = app.db.begin().await.unwrap();
+
+    let delete_entries_query =
+        sqlx::query("DELETE FROM kombucha_entry WHERE kombucha_id = $1")
+            .bind(id);
+
+    let delete_kombucha_query =
+        sqlx::query("DELETE FROM kombucha WHERE id = $1").bind(id);
+
+    transaction.execute(delete_entries_query).await.unwrap();
+    transaction.execute(delete_kombucha_query).await.unwrap();
+
+    transaction.commit().await.unwrap();
+
+    Ok(warp::reply::reply())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     dotenv::dotenv().ok();
-    env_logger::init();
+    pretty_env_logger::init();
 
     let app_dir = env::var("KOMBUCHA_APP_DIR")?;
 
@@ -323,6 +348,10 @@ async fn main() -> Result<(), anyhow::Error> {
             .and(app.clone())
             .and_then(delete_kombucha_entry);
 
+    let delete_kombucha = warp::path!("kombucha" / KombuchaId)
+        .and(app.clone())
+        .and_then(delete_kombucha);
+
     // GET
     let routes = warp::get().and(
         all_kombuchas
@@ -340,7 +369,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let routes = warp::put().and(update_kombucha).or(routes);
 
     // DELETE
-    let routes = warp::delete().and(delete_kombucha_entry).or(routes);
+    let routes = warp::delete()
+        .and(delete_kombucha.or(delete_kombucha_entry))
+        .or(routes);
 
     // api/1/... routes
     let api_routes = warp::path("api").and(warp::path("1")).and(routes);
@@ -356,8 +387,9 @@ async fn main() -> Result<(), anyhow::Error> {
         .allow_any_origin()
         .allow_methods(vec!["GET", "POST", "PUT"]);
 
+    log::info!("Listening on port {}", PORT);
     warp::serve(routes.with(cors))
-        .run(([127, 0, 0, 1], 8080))
+        .run(([127, 0, 0, 1], PORT))
         .await;
 
     Ok(())

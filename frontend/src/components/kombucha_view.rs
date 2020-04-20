@@ -9,6 +9,7 @@ pub enum Msg {
     UpdateSectionText(usize, String),
     NewSection,
     DeleteSection(usize),
+    DeleteMe,
     StartEditingName,
     StopEditingName,
 }
@@ -19,6 +20,7 @@ pub struct Props {
     pub on_change: Callback<Kombucha>,
     pub on_new_entry: Callback<KombuchaId>,
     pub on_delete_entry: Callback<(KombuchaId, EntryId)>,
+    pub on_delete: Callback<KombuchaId>,
 }
 
 pub struct KombuchaView {
@@ -78,6 +80,9 @@ impl Component for KombuchaView {
                         .on_delete_entry
                         .emit((self.props.kombucha.id, entry.id));
                 }
+            }
+            Msg::DeleteMe => {
+                self.props.on_delete.emit(self.props.kombucha.id);
             }
             Msg::StartEditingName => {
                 self.is_editing_name = true;
@@ -153,22 +158,35 @@ impl KombuchaView {
                             x => { log::error!("Invalid change data, expected value, found {:?}", x); Msg::Nop }
                         })
                     />
-                    {"\u{00a0}"}
+
                     <a
-                        class="icon is-small"
+                        class="kombucha-view-control-icon icon"
                         onclick=self.link.callback(|_| Msg::StopEditingName)
-                    ><i class="fas fa-check"/></a>
+                    >
+                        <i class="fas fa-check"/>
+                    </a>
+                    <hr />
                 </div>
             }
         } else {
             html! {
                 <div>
                     <span class="title is-4">{ &self.props.kombucha.name }</span>
-                    {"\u{00a0}"}
+
                     <a
-                        class="icon is-small"
+                        class="kombucha-view-control-icon icon"
                         onclick=self.link.callback(|_| Msg::StartEditingName)
-                    ><i class="fas fa-edit"/></a>
+                    >
+                        <i class="fas fa-edit"/>
+                    </a>
+
+                    <a
+                        class="kombucha-view-control-icon icon has-text-danger"
+                        onclick=self.link.callback(|_| Msg::DeleteMe)
+                    >
+                        <i class="fas fa-trash"/>
+                    </a>
+                    <hr />
                 </div>
             }
         }
@@ -187,13 +205,33 @@ impl KombuchaView {
     }
 
     fn view_entry(&self, idx: usize, entry: &Entry) -> Html {
-        if let Some(edited_idx) = self.edited_entry {
-            if edited_idx == idx {
-                return self.view_edited_entry(idx, entry);
+        let entry_view = match self.edited_entry {
+            Some(edited_idx) if edited_idx == idx => {
+                self.view_edited_entry(idx, entry)
+            }
+            _ => self.view_regular_entry(idx, entry),
+        };
+
+        if idx == self.props.kombucha.entries.len() - 1 {
+            html! { entry_view }
+        } else {
+            html! {
+                <div>
+                    {entry_view}
+                    <hr />
+                </div>
             }
         }
+    }
 
-        self.view_regular_entry(idx, entry)
+    fn view_entry_added(entry: &Entry) -> Html {
+        html! {
+            <span class="tag">
+                <time datetime={entry.added}>
+                    { entry.added.format("%Y %B %d %H:%M") }
+                </time>
+            </span>
+        }
     }
 
     fn view_edited_entry(&self, idx: usize, entry: &Entry) -> Html {
@@ -208,7 +246,7 @@ impl KombuchaView {
                         { &entry.content }
                     </textarea>
                     <br />
-                    <time datetime={entry.added}>{ entry.added.to_string() }</time>
+                    { Self::view_entry_added(entry) }
                 </p>
                 <p class="kombucha-content-control">
                     <div class="field is-grouped is-grouped-centered">
@@ -242,9 +280,9 @@ impl KombuchaView {
         html! {
             <div class="kombucha-entry">
                 <p>
-                    { &entry.content }
+                    { for entry.content.split('\n').filter(|s| !s.is_empty()).map(|s| html! { <p>{ s }</p>}) }
                     <br />
-                    <time datetime={entry.added}>{ entry.added.to_string() }</time>
+                    { Self::view_entry_added(entry) }
                 </p>
                 <p class="kombucha-content-control">
                     <div class="field is-grouped is-grouped-centered">

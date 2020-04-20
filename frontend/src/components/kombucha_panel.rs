@@ -3,7 +3,9 @@ use std::{rc::Rc, sync::Mutex};
 use yew::prelude::*;
 
 pub enum Msg {
+    Nop,
     AddKombucha,
+    UpdateSearchString(String),
     Select(usize),
 }
 
@@ -19,6 +21,7 @@ pub struct Props {
 #[derive(Default)]
 pub struct KombuchaPanel {
     link: ComponentLink<Self>,
+    search_string: String,
     selected_kombucha: Option<usize>,
     kombuchas: Rc<Mutex<Vec<Kombucha>>>,
     on_select: Callback<Option<usize>>,
@@ -46,6 +49,10 @@ impl Component for KombuchaPanel {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
+            Msg::Nop => (),
+            Msg::UpdateSearchString(s) => {
+                self.search_string = s;
+            }
             Msg::AddKombucha => self.on_add.emit(()),
             Msg::Select(idx) => {
                 let select_idx = match self.selected_kombucha {
@@ -71,8 +78,6 @@ impl Component for KombuchaPanel {
     }
 
     fn view(&self) -> Html {
-        let kombuchas = self.kombuchas.lock().unwrap();
-
         html! {
             <nav class="panel kombucha-panel">
                 <p class="panel-heading">
@@ -80,14 +85,20 @@ impl Component for KombuchaPanel {
                 </p>
                 <div class="panel-block">
                     <div class="control has-icons-left">
-                        <input class="input" type="text" placeholder="Search" />
+                        <input
+                            class="input"
+                            type="text"
+                            value=self.search_string
+                            placeholder="Search"
+                            oninput=self.link.callback(|e: InputData| Msg::UpdateSearchString(e.value))
+                        />
                         <span class="icon is-left">
                             <i class="fas fa-search" aria-hidden="true"></i>
                         </span>
                     </div>
                 </div>
                 <div class="">
-                    { for kombuchas.iter().enumerate().map(|(idx, kombucha)| self.view_kombucha_entry(idx, kombucha)) }
+                    { self.view_kombucha_entries() }
                 </div>
                 <div class="panel-block">
                     <button
@@ -103,6 +114,25 @@ impl Component for KombuchaPanel {
 }
 
 impl KombuchaPanel {
+    fn view_kombucha_entries(&self) -> Html {
+        let kombuchas = self.kombuchas.lock().unwrap();
+
+        let kombuchas = kombuchas.iter().enumerate();
+
+        if self.search_string.is_empty() {
+            kombuchas
+                .map(|(idx, kombucha)| self.view_kombucha_entry(idx, kombucha))
+                .collect()
+        } else {
+            kombuchas
+                .filter(|(_, kombucha)| {
+                    kombucha.name.contains(&self.search_string)
+                })
+                .map(|(idx, kombucha)| self.view_kombucha_entry(idx, kombucha))
+                .collect()
+        }
+    }
+
     fn view_kombucha_entry(&self, idx: usize, kombucha: &Kombucha) -> Html {
         let class = match self.selected_kombucha {
             Some(selected_idx) if selected_idx == idx => {

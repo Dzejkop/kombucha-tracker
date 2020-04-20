@@ -20,6 +20,7 @@ pub struct App {
     error: Option<String>,
     selected_idx: Option<usize>,
     entries: Rc<Mutex<Vec<Kombucha>>>,
+    delete_kombucha_modal: Option<KombuchaId>,
 }
 
 pub enum Msg {
@@ -32,8 +33,20 @@ pub enum Msg {
     NewEntry(KombuchaId),
     Select(Option<usize>),
     UpdateKombucha(usize, Kombucha),
+    OpenDeleteKombuchaModal(KombuchaId),
+    ConfirmDeleteKombuchaModal,
+    CloseDeleteKombuchaModal,
     ShowError(Error),
     CloseError,
+}
+
+fn reload_or_show_error(response: Response<Result<String, Error>>) -> Msg {
+    let (parts, response) = response.into_parts();
+    match response {
+        Ok(_) if parts.status.is_success() => Msg::Reload,
+        Ok(body) => Msg::ShowError(Error::msg(body)),
+        Err(err) => Msg::ShowError(err),
+    }
 }
 
 impl App {
@@ -44,12 +57,7 @@ impl App {
 
         let task = self
             .fetch_service
-            .fetch(
-                req,
-                self.link.callback(
-                    |_: Response<Json<Result<KombuchaId, Error>>>| Msg::Reload,
-                ),
-            )
+            .fetch(req, self.link.callback(reload_or_show_error))
             .unwrap();
 
         self.jobs.push_front(Box::new(task));
@@ -64,12 +72,7 @@ impl App {
 
         let task = self
             .fetch_service
-            .fetch(
-                req,
-                self.link.callback(
-                    |_: Response<Json<Result<KombuchaId, Error>>>| Msg::Reload,
-                ),
-            )
+            .fetch(req, self.link.callback(reload_or_show_error))
             .unwrap();
 
         self.jobs.push_front(Box::new(task));
@@ -81,12 +84,7 @@ impl App {
 
         let task = self
             .fetch_service
-            .fetch(
-                req,
-                self.link.callback(
-                    |_: Response<Json<Result<KombuchaId, Error>>>| Msg::Reload,
-                ),
-            )
+            .fetch(req, self.link.callback(reload_or_show_error))
             .unwrap();
 
         self.jobs.push_front(Box::new(task));
@@ -123,19 +121,22 @@ impl App {
 
         let task = self
             .fetch_service
-            .fetch(
-                req,
-                self.link.callback(
-                    |response: Response<Result<String, Error>>| {
-                        match response.into_body() {
-                            Ok(data) => log::info!("Got response {}", data),
-                            Err(err) => log::error!("Got error {}", err),
-                        };
+            .fetch(req, self.link.callback(reload_or_show_error))
+            .unwrap();
 
-                        Msg::Nop
-                    },
-                ),
-            )
+        self.jobs.push_front(Box::new(task));
+    }
+
+    fn delete_kombucha(&mut self, kombucha: KombuchaId) {
+        let url = format!("http://localhost:8080/api/1/kombucha/{}", kombucha);
+        let req = Request::delete(url)
+            .header("content-type", "application/json")
+            .body(Nothing)
+            .unwrap();
+
+        let task = self
+            .fetch_service
+            .fetch(req, self.link.callback(reload_or_show_error))
             .unwrap();
 
         self.jobs.push_front(Box::new(task));
@@ -190,8 +191,21 @@ impl Component for App {
 
                 self.update_kombucha(&new_kombucha);
             }
+
             Msg::Unimplemented => {
                 self.error = Some("Unimplemented :(".to_string());
+            }
+            Msg::OpenDeleteKombuchaModal(id) => {
+                self.delete_kombucha_modal = Some(id);
+            }
+            Msg::ConfirmDeleteKombuchaModal => {
+                drop(entries);
+                if let Some(id) = self.delete_kombucha_modal.take() {
+                    self.delete_kombucha(id);
+                }
+            }
+            Msg::CloseDeleteKombuchaModal => {
+                self.delete_kombucha_modal = None;
             }
             Msg::DeleteEntry(kombucha_id, entry_id) => {
                 drop(entries);
@@ -216,6 +230,7 @@ impl Component for App {
                         on_change=self.link.callback(move |kombucha| Msg::UpdateKombucha(selected_idx, kombucha))
                         on_delete_entry=self.link.callback(|(kombucha_id, entry_id)| Msg::DeleteEntry(kombucha_id, entry_id))
                         on_new_entry=self.link.callback(|kombucha_id| Msg::NewEntry(kombucha_id))
+                        on_delete=self.link.callback(|kombucha_id| Msg::OpenDeleteKombuchaModal(kombucha_id))
                     />
                 }
             } else {
@@ -231,21 +246,53 @@ impl Component for App {
             html! {}
         };
 
+        let modal = if self.delete_kombucha_modal.is_some() {
+            html! {
+                <div class="modal is-active">
+                    <div class="modal-background"></div>
+                    <div class="modal-card is-danger">
+                        <section class="modal-card-body">
+                            { "Are you sure you want to delete this kombucha?" }
+                        </section>
+                        <footer class="modal-card-foot">
+                        <button
+                            class="button is-danger"
+                            onclick=self.link.callback(|_| Msg::ConfirmDeleteKombuchaModal)
+                        >
+                            {"Yes"}
+                        </button>
+
+                        <button
+                            class="button"
+                            onclick=self.link.callback(|_| Msg::CloseDeleteKombuchaModal)
+                        >
+                            {"No"}
+                        </button>
+
+                        </footer>
+                    </div>
+                </div>
+            }
+        } else {
+            html! {}
+        };
+
         html! {
             <div class="container is-fluid kombucha-container">
-            <div class="columns">
-                <div class="column is-one-third">
-                    <KombuchaPanel
-                        kombuchas=self.entries.clone()
-                        on_select=self.link.callback(|idx| Msg::Select(idx))
-                        on_add=self.link.callback(|_| Msg::AddKombucha)
-                    />
+                <div class="columns">
+                    <div class="column is-one-third">
+                        <KombuchaPanel
+                            kombuchas=self.entries.clone()
+                            on_select=self.link.callback(|idx| Msg::Select(idx))
+                            on_add=self.link.callback(|_| Msg::AddKombucha)
+                        />
+                    </div>
+                    <div class="column is-two-thirds">
+                        { inner }
+                    </div>
                 </div>
-                <div class="column is-two-thirds">
-                    { inner }
-                </div>
-            </div>
-            { error }
+                { error }
+                { modal }
             </div>
         }
     }

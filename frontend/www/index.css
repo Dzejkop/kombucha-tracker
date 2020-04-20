@@ -34,3 +34,8 @@
 .kombucha-error-msg {
     overflow: scroll;
 }
+
+.kombucha-view-control-icon {
+    margin: 5px;
+    float: right;
+}
