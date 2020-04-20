@@ -1,2 +1,2 @@
 [workspace]
-members = ["data", "backend", "frontend"]
+members = ["xtask", "data", "backend", "frontend"]
