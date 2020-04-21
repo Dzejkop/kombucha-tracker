@@ -1,5 +1,9 @@
-use data_types::db::{Entry as DbEntry, Kombucha as DbKombucha};
-use data_types::{Entry, EntryId, Kombucha, KombuchaId};
+use data_types::db::{
+    Entry as DbEntry, Fermentation as DbFermentation, Kombucha as DbKombucha,
+};
+use data_types::{
+    Entry, EntryId, Fermentation, FermentationId, Kombucha, KombuchaId,
+};
 use sqlx::postgres::PgPool;
 use sqlx::prelude::*;
 use std::{env, sync::Arc};
@@ -57,6 +61,20 @@ impl App {
         Ok(row)
     }
 
+    async fn get_fermentations_for_kombucha(
+        &self,
+        kombucha_id: KombuchaId,
+    ) -> Result<Vec<DbFermentation>, anyhow::Error> {
+        let rows = sqlx::query_as::<_, DbFermentation>(
+            "SELECT id, kombucha_id, start_date, end_date, est_end_date, status FROM kombucha_fermentation WHERE kombucha_id = $1"
+        )
+        .bind(kombucha_id)
+        .fetch_all(&self.db)
+        .await?;
+
+        Ok(rows)
+    }
+
     async fn create_new_kombucha(&self) -> Result<KombuchaId, anyhow::Error> {
         let (id,) = sqlx::query_as::<_, (KombuchaId,)>(
             "INSERT INTO kombucha (name, added) VALUES ('', NOW()) RETURNING id",
@@ -108,7 +126,7 @@ async fn get_kombuchas(app: AppType) -> Result<impl warp::Reply, Rejection> {
     let kombuchas = app
         .get_kombuchas()
         .await
-        .map_err(|_| warp::reject::not_found())?;
+        .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
 
     let mut ret_kombuchas = Vec::with_capacity(kombuchas.len());
 
@@ -116,7 +134,7 @@ async fn get_kombuchas(app: AppType) -> Result<impl warp::Reply, Rejection> {
         let entries = app
             .get_entries_for_kombucha(id)
             .await
-            .map_err(|_| warp::reject::not_found())?;
+            .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
 
         let entries = entries
             .into_iter()
@@ -127,11 +145,37 @@ async fn get_kombuchas(app: AppType) -> Result<impl warp::Reply, Rejection> {
             )
             .collect();
 
+        let fermentations = app
+            .get_fermentations_for_kombucha(id)
+            .await
+            .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
+
+        let fermentations = fermentations
+            .into_iter()
+            .map(
+                |DbFermentation {
+                     id,
+                     start_date,
+                     end_date,
+                     est_end_date,
+                     status,
+                     ..
+                 }| Fermentation {
+                    id,
+                    start_date,
+                    end_date,
+                    est_end_date,
+                    status,
+                },
+            )
+            .collect();
+
         ret_kombuchas.push(Kombucha {
             id,
             name,
             added,
             entries,
+            fermentations,
         });
     }
 
@@ -151,7 +195,7 @@ async fn get_kombucha(
     let entries = app
         .get_entries_for_kombucha(id)
         .await
-        .map_err(|_| warp::reject::not_found())?;
+        .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
 
     let entries = entries
         .into_iter()
@@ -162,11 +206,37 @@ async fn get_kombucha(
         )
         .collect();
 
+    let fermentations = app
+        .get_fermentations_for_kombucha(id)
+        .await
+        .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
+
+    let fermentations = fermentations
+        .into_iter()
+        .map(
+            |DbFermentation {
+                 id,
+                 start_date,
+                 end_date,
+                 est_end_date,
+                 status,
+                 ..
+             }| Fermentation {
+                id,
+                start_date,
+                end_date,
+                est_end_date,
+                status,
+            },
+        )
+        .collect();
+
     let kombucha = Kombucha {
         id,
         name,
         added,
         entries,
+        fermentations,
     };
 
     Ok(warp::reply::json(&kombucha))
@@ -178,7 +248,7 @@ async fn update_kombucha(
 ) -> Result<impl warp::Reply, Rejection> {
     app.update_kombucha(&kombucha)
         .await
-        .map_err(|_| warp::reject::not_found())?;
+        .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
 
     Ok(warp::reply::reply())
 }
@@ -187,7 +257,7 @@ async fn create_kombucha(app: AppType) -> Result<impl warp::Reply, Rejection> {
     let kombucha_id: KombuchaId = app
         .create_new_kombucha()
         .await
-        .map_err(|_| warp::reject::not_found())?;
+        .map_err(|err| {log::error!("{}", err); warp::reject::not_found()})?;
 
     Ok(warp::reply::json(&kombucha_id))
 }
@@ -374,7 +444,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .or(routes);
 
     // api/1/... routes
-    let api_routes = warp::path("api").and(warp::path("1")).and(routes);
+    let api_routes = warp::path!("api" / "1" / ..).and(routes);
 
     // Static App route
     let app = warp::fs::dir(app_dir);

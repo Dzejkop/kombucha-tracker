@@ -1,2 +1,2 @@
 [alias]
-    wb = "watch -w src -s ./rebuild.sh"
+    wb = "watch -w ../data -w . -s ./rebuild.sh"

@@ -10,5 +10,8 @@ VALUES
 
 INSERT INTO kombucha (name, added)
 VALUES
-    ('Banana #1 brew', NOW())
-RETURNING id;
+    ('Banana #1 brew', NOW());
+
+INSERT INTO kombucha_fermentation ( kombucha_id, start_date, status )
+VALUES
+    (1, NOW(), 'primary');
