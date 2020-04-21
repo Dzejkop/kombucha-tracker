@@ -51,7 +51,7 @@ fn reload_or_show_error(response: Response<Result<String, Error>>) -> Msg {
 
 impl App {
     fn add_kombucha(&mut self) {
-        let req = Request::post("http://localhost:8080/api/1/kombucha")
+        let req = Request::post("/api/1/kombucha")
             .body(Nothing)
             .unwrap();
 
@@ -65,7 +65,7 @@ impl App {
 
     fn delete_entry(&mut self, id: KombuchaId, entry_id: EntryId) {
         let url = format!(
-            "http://localhost:8080/api/1/kombucha/{}/entry/{}",
+            "/api/1/kombucha/{}/entry/{}",
             id, entry_id
         );
         let req = Request::delete(url).body(Nothing).unwrap();
@@ -79,7 +79,7 @@ impl App {
     }
 
     fn new_entry(&mut self, id: KombuchaId) {
-        let url = format!("http://localhost:8080/api/1/kombucha/{}/entry", id);
+        let url = format!("/api/1/kombucha/{}/entry", id);
         let req = Request::post(url).body(Nothing).unwrap();
 
         let task = self
@@ -91,7 +91,7 @@ impl App {
     }
 
     fn get_kombuchas(&mut self) {
-        let req = Request::get("http://localhost:8080/api/1/kombucha/all")
+        let req = Request::get("/api/1/kombucha/all")
             .body(Nothing)
             .unwrap();
 
@@ -114,7 +114,7 @@ impl App {
     }
 
     fn update_kombucha(&mut self, kombucha: &Kombucha) {
-        let req = Request::put("http://localhost:8080/api/1/kombucha")
+        let req = Request::put("/api/1/kombucha")
             .header("content-type", "application/json")
             .body(Json(&kombucha))
             .unwrap();
@@ -128,7 +128,7 @@ impl App {
     }
 
     fn delete_kombucha(&mut self, kombucha: KombuchaId) {
-        let url = format!("http://localhost:8080/api/1/kombucha/{}", kombucha);
+        let url = format!("/api/1/kombucha/{}", kombucha);
         let req = Request::delete(url)
             .header("content-type", "application/json")
             .body(Nothing)
