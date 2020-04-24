@@ -131,7 +131,7 @@ impl App {
         Ok(row)
     }
 
-    async fn get_db_fermentations_for_kombucha(
+    async fn _get_db_fermentations_for_kombucha(
         &self,
         kombucha_id: KombuchaId,
     ) -> Result<Vec<DbFermentation>, anyhow::Error> {

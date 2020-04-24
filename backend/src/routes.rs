@@ -21,7 +21,10 @@ pub fn routes(
         .allow_any_origin()
         .allow_methods(vec!["GET", "POST", "PUT"]);
 
-    api_routes.or(static_routes).with(cors)
+    api_routes
+        .or(static_routes)
+        .with(cors)
+        .with(warp::log("kombucha_tracker_server"))
 }
 
 fn get_routes(
@@ -41,7 +44,6 @@ fn get_routes(
             .and(warp::path!("kombucha" / KombuchaId / "entry" / EntryId))
             .and_then(handlers::get_kombucha_entry))
         .or(base
-            .clone()
             .and(warp::path!("kombucha" / KombuchaId / "entry"))
             .and_then(handlers::get_kombucha_entries))
 }
@@ -55,7 +57,6 @@ fn post_routes(
         .and(warp::path!("kombucha"))
         .and_then(handlers::create_kombucha)
         .or(base
-            .clone()
             .and(warp::path!("kombucha" / KombuchaId / "entry"))
             .and_then(handlers::create_kombucha_entry))
 }
@@ -65,8 +66,7 @@ fn put_routes(
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     let base = warp::put().and(with_app(app));
 
-    base.clone()
-        .and(warp::body::json())
+    base.and(warp::body::json())
         .and(warp::path!("kombucha"))
         .and_then(handlers::update_kombucha)
 }
@@ -80,7 +80,6 @@ fn delete_routes(
         .and(warp::path!("kombucha" / KombuchaId))
         .and_then(handlers::delete_kombucha)
         .or(base
-            .clone()
             .and(warp::path!("kombucha" / KombuchaId / "entry" / EntryId))
             .and_then(handlers::delete_kombucha_entry))
 }

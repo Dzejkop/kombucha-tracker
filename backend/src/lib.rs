@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 mod app;
-pub mod handlers;
+mod handlers;
 mod routes;
 
 pub use self::app::App;

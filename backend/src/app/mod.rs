@@ -1,9 +1,9 @@
 use sqlx::PgPool;
 
-mod get;
 mod create;
-mod update;
 mod delete;
+mod get;
+mod update;
 
 #[derive(Clone, Debug)]
 pub struct App {
@@ -11,7 +11,7 @@ pub struct App {
 }
 
 impl App {
-    fn new(db: PgPool) -> Self {
+    pub fn new(db: PgPool) -> Self {
         Self { db }
     }
 }

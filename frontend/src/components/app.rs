@@ -51,9 +51,7 @@ fn reload_or_show_error(response: Response<Result<String, Error>>) -> Msg {
 
 impl App {
     fn add_kombucha(&mut self) {
-        let req = Request::post("/api/1/kombucha")
-            .body(Nothing)
-            .unwrap();
+        let req = Request::post("/api/1/kombucha").body(Nothing).unwrap();
 
         let task = self
             .fetch_service
@@ -64,10 +62,7 @@ impl App {
     }
 
     fn delete_entry(&mut self, id: KombuchaId, entry_id: EntryId) {
-        let url = format!(
-            "/api/1/kombucha/{}/entry/{}",
-            id, entry_id
-        );
+        let url = format!("/api/1/kombucha/{}/entry/{}", id, entry_id);
         let req = Request::delete(url).body(Nothing).unwrap();
 
         let task = self
@@ -90,10 +85,8 @@ impl App {
         self.jobs.push_front(Box::new(task));
     }
 
-    fn get_kombuchas(&mut self) {
-        let req = Request::get("/api/1/kombucha/all")
-            .body(Nothing)
-            .unwrap();
+    fn get_all_kombuchas(&mut self) {
+        let req = Request::get("/api/1/kombucha").body(Nothing).unwrap();
 
         let task = self
             .fetch_service
@@ -154,7 +147,7 @@ impl Component for App {
             ..Self::default()
         };
 
-        app.get_kombuchas();
+        app.get_all_kombuchas();
 
         app
     }
@@ -166,7 +159,7 @@ impl Component for App {
         match msg {
             Msg::Reload => {
                 drop(entries);
-                self.get_kombuchas();
+                self.get_all_kombuchas();
             }
             Msg::Nop => return false,
             Msg::LoadKombuchas(kombuchas) => {

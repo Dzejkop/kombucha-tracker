@@ -788,6 +788,7 @@ dependencies = [
  "log 0.4.8",
  "pretty_env_logger",
  "serde",
+ "serde_json",
  "sqlx",
  "tokio",
  "warp",
