@@ -24,3 +24,19 @@ impl Default for Entry {
         Self::new(EntryId::from(0), Utc::now(), "".to_string())
     }
 }
+
+#[cfg(feature = "db")]
+mod db {
+    use super::Entry;
+    use crate::db::Entry as DbEntry;
+
+    impl From<DbEntry> for Entry {
+        fn from(
+            DbEntry {
+                id, added, content, ..
+            }: DbEntry,
+        ) -> Self {
+            Self { id, added, content }
+        }
+    }
+}
