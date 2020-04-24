@@ -12,8 +12,8 @@ pub async fn get_all_kombuchas(
 }
 
 pub async fn get_kombucha(
-    id: KombuchaId,
     app: AppType,
+    id: KombuchaId,
 ) -> Result<impl warp::Reply, Rejection> {
     app.get_kombucha(id)
         .await
@@ -22,8 +22,8 @@ pub async fn get_kombucha(
 }
 
 pub async fn update_kombucha(
-    kombucha: Kombucha,
     app: AppType,
+    kombucha: Kombucha,
 ) -> Result<impl warp::Reply, Rejection> {
     app.update_kombucha(&kombucha)
         .await
@@ -41,8 +41,8 @@ pub async fn create_kombucha(
 }
 
 pub async fn create_kombucha_entry(
-    kombucha_id: KombuchaId,
     app: AppType,
+    kombucha_id: KombuchaId,
 ) -> Result<impl warp::Reply, Rejection> {
     app.create_new_kombucha_entry(kombucha_id)
         .await
@@ -51,8 +51,8 @@ pub async fn create_kombucha_entry(
 }
 
 pub async fn get_kombucha_entries(
-    id: KombuchaId,
     app: AppType,
+    id: KombuchaId,
 ) -> Result<impl warp::Reply, Rejection> {
     app.get_kombucha_entries(id)
         .await
@@ -61,9 +61,9 @@ pub async fn get_kombucha_entries(
 }
 
 pub async fn get_kombucha_entry(
+    app: AppType,
     id: KombuchaId,
     entry_id: EntryId,
-    app: AppType,
 ) -> Result<impl warp::Reply, Rejection> {
     app.get_kombucha_entry(id, entry_id)
         .await
@@ -72,9 +72,9 @@ pub async fn get_kombucha_entry(
 }
 
 pub async fn delete_kombucha_entry(
+    app: AppType,
     id: KombuchaId,
     entry_id: EntryId,
-    app: AppType,
 ) -> Result<impl warp::Reply, Rejection> {
     app.delete_kombucha_entry(id, entry_id)
         .await
@@ -83,8 +83,8 @@ pub async fn delete_kombucha_entry(
 }
 
 pub async fn delete_kombucha(
-    id: KombuchaId,
     app: AppType,
+    id: KombuchaId,
 ) -> Result<impl warp::Reply, Rejection> {
     app.delete_kombucha(id)
         .await
